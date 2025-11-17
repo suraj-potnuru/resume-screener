@@ -1,0 +1,8 @@
+fastapi==0.121.2
+uvicorn==0.29.0
+pymupdf==1.26.6
+dspy==2.6.5
+psycopg2-binary==2.9.11
+google==3.0.0
+google-genai==1.49.0
+pydantic==2.12.4
