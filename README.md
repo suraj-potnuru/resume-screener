@@ -1,7 +1,7 @@
 # resume-screener
 Simple resume text extractor and parser using PyMuPdf, Gemini Models. Additional search functionality using PostgreSQL and Qdrant.
 
-How to run:
+## How to run:
 1. Install dependencies:
 ```bash
 python3 -m pip install -r requirements.txt
@@ -16,8 +16,12 @@ Fetch model id from [here](https://developers.generativeai.google/products/gemin
 
 3. Start the FastAPI server: `uvicorn app:app --reload`
 
-4. Example - 
+## Example - 
 
 Below is a screenshot from the POSTMAN application testing the API on localhost.
 
 ![postman_screenshot](docs/postman-demo.png)
+
+## What it does:
+
+![postman_screenshot](docs/resume-screenerdrawio.drawio.png)
