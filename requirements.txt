@@ -6,3 +6,4 @@ psycopg2-binary==2.9.11
 google==3.0.0
 google-genai==1.49.0
 pydantic==2.12.4
+qdrant-client

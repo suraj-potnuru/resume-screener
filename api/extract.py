@@ -7,6 +7,8 @@ from fastapi import APIRouter, HTTPException, UploadFile, File
 from fastapi.responses import JSONResponse
 from prompts import ResumeExtractionPrompt
 
+from lib import DatabaseService
+
 GEMINI_MODEL_ID = os.environ.get("GEMINI_MODEL_ID", "gemini-2.5-flash")
 
 router = APIRouter()
@@ -49,12 +51,43 @@ def extract_text_from_pdf(pdf_bytes: bytes) -> str:
     return "\n\n".join(all_text)
 
 
-@router.post("/api/extract")
+@router.get("/api/resume/{resume_id}")
+async def get_resume(resume_id: int):
+    """
+    Endpoint to retrieve resume data by ID.
+    """
+    database = DatabaseService(
+        host=os.environ.get("POSTGRES_HOST", "localhost"),
+        port=int(os.environ.get("POSTGRES_PORT", 5432)),
+        user=os.environ.get("POSTGRES_USER", "postgres"),
+        database=os.environ.get("POSTGRES_DB", "resumescreenerdb")
+    )
+    database.start_connection()
+    resume_data = database.get_resume_by_id(resume_id)
+    skills = database.get_skills_by_resume_id(resume_id)
+    experience = database.get_experience_by_resume_id(resume_id)
+    education = database.get_education_by_resume_id(resume_id)
+    database.close_connection()
+
+    response_data = {
+        "resume": resume_data,
+        "skills": skills,
+        "experience": experience,
+        "education": education
+    }
+
+    if not resume_data:
+        raise HTTPException(status_code=404, detail="Resume not found.")
+
+    return JSONResponse(content=response_data)
+
+@router.post("/api/resume")
 async def extract_pdf_text(file: UploadFile = File(...)):
     """
     Endpoint to extract text from uploaded PDF file.
     Handles complex PDFs including multi-column layouts.
     """
+
     # Validate PDF
     if not file.filename.lower().endswith(".pdf"):
         raise HTTPException(status_code=400, detail="Only PDF files are supported.")
@@ -83,4 +116,29 @@ async def extract_pdf_text(file: UploadFile = File(...)):
     json_str = response_message[start_index:end_index]
     parsed_json = json.loads(json_str)
 
-    return parsed_json
+    database = DatabaseService(
+        host=os.environ.get("POSTGRES_HOST", "localhost"),
+        port=int(os.environ.get("POSTGRES_PORT", 5432)),
+        user=os.environ.get("POSTGRES_USER", "postgres"),
+        database=os.environ.get("POSTGRES_DB", "resumescreenerdb")
+    )
+    database.start_connection()
+    resume_id = database.insert_resume(parsed_json)
+    
+    skills = parsed_json.get("skills", [])
+    database.insert_skills(resume_id, skills)
+
+    experience_list = parsed_json.get("experience", [])
+    database.insert_experience(resume_id, experience_list)
+
+    education_list = parsed_json.get("education", [])
+    database.insert_education(resume_id, education_list)
+    
+    database.close_connection()
+
+    response_data = {
+        "resume_id": resume_id,
+        "extracted_data": parsed_json
+    }
+
+    return response_data
