@@ -5,9 +5,9 @@ import fitz  # PyMuPDF
 from google import genai
 from fastapi import APIRouter, HTTPException, UploadFile, File
 from fastapi.responses import JSONResponse
-from prompts import ResumeExtractionPrompt
+from prompts import ResumeExtractionPrompt, SummarizePrompt
 
-from lib import DatabaseService
+from lib import DatabaseService, QdrantService
 
 GEMINI_MODEL_ID = os.environ.get("GEMINI_MODEL_ID", "gemini-2.5-flash")
 
@@ -50,6 +50,26 @@ def extract_text_from_pdf(pdf_bytes: bytes) -> str:
     # Join pages with spacing
     return "\n\n".join(all_text)
 
+@router.get("/api/search")
+async def semantic_search(query: str, limit: int = 5):
+    """
+    Endpoint to perform semantic search on resumes using Qdrant.
+    """
+    qdrant_service = QdrantService()
+    search_results = qdrant_service.semantic_search(
+        query=query,
+        limit=limit
+    )
+    print("Search Results:", search_results)  # Debug print
+    # Summarize results using LLM
+    prompt_text = SummarizePrompt.prompt(question=query, search_results=search_results)
+    print("Prompt Text for Summarization:", prompt_text)  # Debug print
+    response = client.models.generate_content(
+        model=GEMINI_MODEL_ID,
+        contents=prompt_text
+    )
+    response_message = response.text
+    return JSONResponse(content={"answer": response_message})
 
 @router.get("/api/resume/{resume_id}")
 async def get_resume(resume_id: int):
@@ -140,5 +160,15 @@ async def extract_pdf_text(file: UploadFile = File(...)):
         "resume_id": resume_id,
         "extracted_data": parsed_json
     }
+
+    # Starting the Vector database ingestion
+    qdrant_service = QdrantService()
+
+    # Prepare resume chunks
+    qdrant_service.prepare_resume_chunks(response_data)
+
+    # Create embeddings and store in Qdrant
+    qdrant_service.create_embeddings_and_store()
+
 
     return response_data
