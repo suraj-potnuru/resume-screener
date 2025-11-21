@@ -6,7 +6,7 @@ class DatabaseService:
         self.host = host
         self.port = port
         self.user = user
-        self.password = os.environ.get("local_postgres_password", "")
+        self.password = os.environ.get("POSTGRES_PASSWORD", "")
         self.database = database
 
     def start_connection(self):

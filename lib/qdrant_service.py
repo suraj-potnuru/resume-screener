@@ -20,7 +20,7 @@ class QdrantService: #pylint: disable=R0902
         """
         Initialize QdrantService with configuration from environment variables.
         """
-        self.qdrant_url = os.getenv("QDRANT_URL", "http://localhost:6333")
+        self.qdrant_url = os.getenv("QDRANT_URL", "http://qdrant:6333")
         self.collection_name = "resumes"
         self.gemini_api_key = os.getenv("GEMINI_API_KEY")  # set this env var with your key
         self.embed_model = "gemini-embedding-001"          # recommended model
@@ -71,7 +71,6 @@ class QdrantService: #pylint: disable=R0902
         Each chunk corresponds to a section of the resume (summary, skills, experience, education).
         """
         self.chunks = []  # reset chunks
-        rid = resume_json["resume_id"]
         data = resume_json["extracted_data"]
         rname = data.get("name", "").strip()
         summary = self._clean_text(data.get("summary", ""))
@@ -80,7 +79,6 @@ class QdrantService: #pylint: disable=R0902
                 "id": str(uuid.uuid4()),
                 "text": f"[SUMMARY] {summary}",
                 "metadata": {
-                    "resume_id": rid,
                     "candidate_name": rname,
                     "section": "summary"
                 }
@@ -93,7 +91,6 @@ class QdrantService: #pylint: disable=R0902
                 "id": str(uuid.uuid4()),
                 "text": f"[SKILL] {skill}",
                 "metadata": {
-                    "resume_id": rid,
                     "candidate_name": rname,
                     "section": "skill",
                     "skill": skill
@@ -118,7 +115,6 @@ class QdrantService: #pylint: disable=R0902
                     "id": str(uuid.uuid4()),
                     "text": f"[EXPERIENCE] {full_text}",
                     "metadata": {
-                        "resume_id": rid,
                         "candidate_name": rname,
                         "section": "experience",
                         "company": company,
@@ -140,7 +136,6 @@ class QdrantService: #pylint: disable=R0902
                     "id": str(uuid.uuid4()),
                     "text": f"[EDUCATION] {text}",
                     "metadata": {
-                        "resume_id": rid,
                         "candidate_name": rname,
                         "section": "education",
                         "institution": inst,
